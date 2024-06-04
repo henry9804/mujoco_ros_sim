@@ -24,6 +24,14 @@ void c_reset()
     sim_time_now_ros = ros::Duration(d->time);
 
     mujoco_ros_connector_init();
+        int body_id = -1;
+    body_id = mj_name2id(m, mjOBJ_BODY, "cup");
+    std::cout<<"Cup Callback"<<std::endl;
+            int geomIndex = m->body_geomadr[body_id];
+
+            d->geom_xpos[3*geomIndex] = cup_x_;
+            d->geom_xpos[3*geomIndex + 1] = cup_y_;
+            d->geom_xpos[3*geomIndex + 2] = cup_z_;
     mj_forward(m, d);
 
     sim_time_ros = ros::Duration(d->time);
@@ -127,6 +135,57 @@ void sim_command_callback(const std_msgs::StringConstPtr &msg)
         std::cout << "SIM slowmotion by msg" << std::endl;
     }
 }
+
+void NewCupPosCallback(const geometry_msgs::PointConstPtr &msg)
+{
+    // float cup_x = msg -> x;
+    // float cup_y = msg -> y;
+    // float cup_z = msg -> z;
+
+    //  cup_pos_msg_.x = data->geom_xpos[3*geomIndex];
+ 
+    // cup_pos_ << cup_x, cup_y, cup_z;
+    // std::cout << "CupPos subscribed!" << std::endl;
+
+
+    // if(msg->data){
+    //     // for (int i = 0; i < model->nu /3; ++i)
+    //     // {
+    //     //     data->ctrl[3 * i] = msg;
+    //     //     data->ctrl[3 * i + 1] = msg;
+    //     //     data->ctrl[3 * i + 2] = msg;
+    //     // }
+
+    //     data->ctrl[3 * i] = msg;
+    //     data->ctrl[3 * i + 1] = msg;
+    //     data->ctrl[3 * i + 2] = msg;
+    //}
+
+    int body_id = -1;
+    body_id = mj_name2id(m, mjOBJ_BODY, "cup");
+    std::cout<<"Cup Callback"<<std::endl;
+
+    if (body_id >= 0)
+    {
+        cup_x_ = msg->x;
+        cup_y_ = msg->y;
+        cup_z_ = msg->z;
+        
+        int geomIndex = m->body_geomadr[body_id];
+
+    std::cout<< "MSG: " << msg->x <<"\t"<< msg->y<<"\t" << msg->z <<std::endl;
+        m->body_pos[3*body_id] = msg->x - d->geom_xpos[3*geomIndex];
+        m->body_pos[3*body_id+1] = msg->y - d->geom_xpos[3*geomIndex+1];
+        m->body_pos[3*body_id+2] = msg->z - d->geom_xpos[3*geomIndex+2];
+        
+    }
+    else
+    {
+        ROS_WARN("NO CUP POS");
+    }
+
+}
+
 void rosPollEvents()
 {
     if (reset_request)
@@ -477,6 +536,7 @@ void mujoco_ros_connector_init()
     }
 
     controller_reset_check = true;
+    command;
     controller_init_check = true;
 }
 

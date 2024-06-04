@@ -32,7 +32,11 @@ you can test mujoco_ros_sim with dyros_red or dyros_jet
 * /mujoco_ros_interface/joint_states <sensor_msgs::JointState> : publish joint states(d->qpos, d->qvel, d->qacc)
 * /mujoco_ros_interface/sensor_states <mujoco_ros_msgs::SensorState> : publish sensor states
 * /mujoco_ros_interface/sim_time <std_msgs::Float32> : publish simulation time
+* /mujoco_ros_interface/camera/image <cv_bridge::CvImage> : publish camera image
+* /cup_pos <geometry_msgs::Point> : publish current cup pose
 
 ### Subscriber
 * /mujoco_ros_interface/sim_command_con2sim <std_msgs::String> : simulator <-> controller connector
 * /mujoco_ros_interface/joint_set <mujoco_ros_msgs::JointSet> : position/torque command from controller
+* /mujoco_ros_interface/camera/flag <std_msgs::Bool> : flag whether to publish image or not
+* /new_cup_pos <geometry_msgs::Point> : new cup pose from controller
