@@ -146,7 +146,7 @@ void loadmodel(void)
 void RGBD_sensor(mjModel* model, mjData* data)
 {
   glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-  GLFWwindow* window = glfwCreateWindow(1200, 800, "Camera", NULL, NULL);
+  GLFWwindow* window = glfwCreateWindow(640, 480, "Camera", NULL, NULL);
   // glfwSetWindowAttrib(window, GLFW_RESIZABLE, GLFW_FALSE);
   glfwMakeContextCurrent(window);
   glfwSwapInterval(1);
@@ -191,47 +191,47 @@ void RGBD_sensor(mjModel* model, mjData* data)
 
 
     // if(camera_pub_flag_){
-    pub_img = mj_RGBD.get_color_image();
-    if(pub_img.empty())
-    {
-        ROS_ERROR("Could not read the image.");
-        // return -1;
-    }
-    else
-    {
-        ////CAMERA img publish
-        cv::Mat resized_img;
-        // cv::Size desired_size(64, 64); // 원하는 크기 지정하세요 FOV는 .xml에서..
-        cv::Size desired_size(256, 256); // 원하는 크기 지정하세요
-        cv::resize(pub_img, resized_img, desired_size);
-
-        img_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", resized_img).toImageMsg();
-        camera_image_pub.publish(img_msg);
-        camera_pub_flag_=false;
-
-
-        ////CUP POSE
-        body_id = -1;
-        body_id = mj_name2id(model, mjOBJ_BODY, "cup");
-
-
-        if (body_id >= 0)
+        pub_img = mj_RGBD.get_color_image();
+        ros::Time img_capture_time = ros::Time::now();
+        if(pub_img.empty())
         {
-            geomIndex = model->body_geomadr[body_id];
-
-            cup_pos_msg_.x = data->geom_xpos[3*geomIndex];
-            cup_pos_msg_.y = data->geom_xpos[3*geomIndex + 1];
-            cup_pos_msg_.z = data->geom_xpos[3*geomIndex + 2];
-
+            ROS_ERROR("Could not read the image.");
+            // return -1;
         }
         else
         {
-            ROS_WARN("NO CUP POS");
+            ////CAMERA img publish
+            // cv::Mat resized_img;
+            // cv::Size desired_size(480, 640); // 원하는 크기 지정하세요 FOV는 .xml에서..
+            // cv::resize(pub_img, resized_img, desired_size);
+            // img_msg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", resized_img).toImageMsg();
+            img_msg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", pub_img).toImageMsg();
+            img_msg->header.stamp = img_capture_time;
+            camera_image_pub.publish(img_msg);
+            camera_pub_flag_=false;
+
         }
-        cup_pos_pub.publish(cup_pos_msg_);
+    // }
+
+    ////CUP POSE
+    body_id = -1;
+    body_id = mj_name2id(model, mjOBJ_BODY, "cup");
+
+
+    if (body_id >= 0)
+    {
+        geomIndex = model->body_geomadr[body_id];
+
+        cup_pos_msg_.x = data->geom_xpos[3*geomIndex];
+        cup_pos_msg_.y = data->geom_xpos[3*geomIndex + 1];
+        cup_pos_msg_.z = data->geom_xpos[3*geomIndex + 2];
 
     }
-    // }
+    else
+    {
+        ROS_WARN("NO CUP POS");
+    }
+    cup_pos_pub.publish(cup_pos_msg_);
 
     mtx.unlock();
 

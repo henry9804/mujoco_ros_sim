@@ -173,10 +173,11 @@ void NewCupPosCallback(const geometry_msgs::PointConstPtr &msg)
         
         int geomIndex = m->body_geomadr[body_id];
 
-    std::cout<< "MSG: " << msg->x <<"\t"<< msg->y<<"\t" << msg->z <<std::endl;
-        m->body_pos[3*body_id] = msg->x - d->geom_xpos[3*geomIndex];
-        m->body_pos[3*body_id+1] = msg->y - d->geom_xpos[3*geomIndex+1];
-        m->body_pos[3*body_id+2] = msg->z - d->geom_xpos[3*geomIndex+2];
+        std::cout<< "MSG: " << msg->x <<"\t"<< msg->y<<"\t" << msg->z <<std::endl;
+        // relative position wrt initial position
+        m->body_pos[3*body_id] = msg->x;
+        m->body_pos[3*body_id+1] = msg->y;
+        m->body_pos[3*body_id+2] = msg->z;
         
     }
     else
@@ -404,6 +405,12 @@ void state_publisher()
         mj_shm_->pos_virtual[5] = d->qpos[6];
         mj_shm_->pos_virtual[6] = d->qpos[3];
 
+        if(m->nu != MODEL_DOF){
+            std::copy(d->qpos + 40, d->qpos + 60, mj_shm_->hand_pos);
+            std::copy(d->qvel + 39, d->qvel + 59, mj_shm_->hand_vel);
+            std::copy(d->qacc + 39, d->qacc + 59, mj_shm_->hand_acc);
+        }
+
         for (int i = 0; i < m->nsensor; i++)
         {
 
@@ -560,8 +567,12 @@ void mycontroller(const mjModel *m, mjData *d)
                 }
                 cmd_rcv = true;
                 //std::copy(mj_shm_->torqueCommand, mj_shm_->torqueCommand + m->nu, ctrl_command);
-                for (int i = 0; i < m->nu; i++)
+                for (int i = 0; i < MODEL_DOF; i++)
                     ctrl_command_temp_[i] = mj_shm_->torqueCommand[i];
+                for (int i = MODEL_DOF; i < m->nu; i++)
+                    ctrl_command_temp_[i] = mj_shm_->handCommand[i-MODEL_DOF];
+                // for (int i = 0; i < m->nu; i++)
+                //     ctrl_command_temp_[i] = mj_shm_->handCommand[i];
 #else
                 std::cout << "WARNING : Getting command, while SHM_NOT_COMPILED " << std::endl;
 #endif
