@@ -24,9 +24,12 @@ mjvScene scene;
 mjvOption option;
 
 image_transport::Publisher camera_image_pub;
+image_transport::Publisher depth_image_pub;
 bool camera_pub_flag_=false;
 cv::Mat pub_img;
+cv::Mat depth_img;
 sensor_msgs::ImagePtr img_msg;
+sensor_msgs::ImagePtr depth_msg;
 
 ros::Publisher cup_pos_pub;
 geometry_msgs::Point cup_pos_msg_;
@@ -175,6 +178,7 @@ void RGBD_sensor(mjModel* model, mjData* data)
 
   while (!glfwWindowShouldClose(window))
   {
+    ros::Time init_ = ros::Time::now();
     // get framebuffer viewport
     mjrRect viewport = {0,0,0,0};
     glfwGetFramebufferSize(window, &viewport.width, &viewport.height);
@@ -192,6 +196,7 @@ void RGBD_sensor(mjModel* model, mjData* data)
 
     // if(camera_pub_flag_){
         pub_img = mj_RGBD.get_color_image();
+        depth_img = mj_RGBD.get_depth_image();
         ros::Time img_capture_time = ros::Time::now();
         if(pub_img.empty())
         {
@@ -206,8 +211,11 @@ void RGBD_sensor(mjModel* model, mjData* data)
             // cv::resize(pub_img, resized_img, desired_size);
             // img_msg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", resized_img).toImageMsg();
             img_msg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", pub_img).toImageMsg();
+            depth_msg = cv_bridge::CvImage(std_msgs::Header(), "32FC1", depth_img).toImageMsg();
             img_msg->header.stamp = img_capture_time;
+            depth_msg->header.stamp = img_capture_time;
             camera_image_pub.publish(img_msg);
+            depth_image_pub.publish(depth_msg);
             camera_pub_flag_=false;
 
         }
@@ -268,7 +276,8 @@ void RGBD_sensor(mjModel* model, mjData* data)
     // process pending GUI events, call GLFW callbacks
     glfwPollEvents();
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    int elapsed_time_nano = int((ros::Time::now() - init_).toSec() * 1e9);
+    std::this_thread::sleep_for(std::chrono::nanoseconds(16666666 - elapsed_time_nano));
 
     // Do not forget to release buffer to avoid memory leak
     mj_RGBD.release_buffer();
@@ -300,6 +309,7 @@ int main(int argc, char **argv)
     ros::Subscriber camera_flag_sub = nh.subscribe<std_msgs::Bool>("/mujoco_ros_interface/camera/flag", 1, camera_flag_callback);
     image_transport::ImageTransport it(nh);
     camera_image_pub = it.advertise("/mujoco_ros_interface/camera/image", 1);
+    depth_image_pub = it.advertise("/mujoco_ros_interface/camera/depth", 1);
 
 
     cup_pos_pub = nh.advertise<geometry_msgs::Point>("/cup_pos", 1);

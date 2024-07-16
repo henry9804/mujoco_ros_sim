@@ -52,10 +52,10 @@ void RGBD_mujoco::get_RGBD_buffer(const mjModel* model, const mjrRect viewport, 
   cv::flip(rgb, rgb, 0);
   rgb.copyTo(color_image);
 
-  // cv::Mat depth(img_size, CV_32F, depth_buffer);
-  // cv::flip(depth, depth, 0);
-  // cv::Mat depth_img_m = linearize_depth(depth);
-  // depth_img_m.copyTo(depth_image);
+  cv::Mat depth(img_size, CV_32F, depth_buffer);
+  cv::flip(depth, depth, 0);
+  cv::Mat depth_img_m = linearize_depth(depth);
+  depth_img_m.copyTo(depth_image);
 }
 
 // pcl::PointCloud<pcl::PointXYZ> RGBD_mujoco::generate_pointcloud()
