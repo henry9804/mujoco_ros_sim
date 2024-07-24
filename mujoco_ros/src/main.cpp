@@ -15,6 +15,10 @@
 #include <std_msgs/Bool.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Point.h>
+#include <mujoco_ros_msgs/ImageRequest.h>
+#include <mujoco_ros_msgs/ImgReqAction.h>
+#include "actionlib/server/simple_action_server.h"
+#include "actionlib/server/action_server.h"
 
 // MuJoCo basic data structures
 mjModel* model_ = NULL;
@@ -26,11 +30,12 @@ mjvOption option;
 
 image_transport::Publisher camera_image_pub;
 image_transport::Publisher depth_image_pub;
-bool camera_pub_flag_=false;
+bool camera_pub_flag_=true;
 cv::Mat pub_img;
 cv::Mat depth_img;
 sensor_msgs::ImagePtr img_msg;
 sensor_msgs::ImagePtr depth_msg;
+bool img_updated = false;
 
 ros::Publisher cup_pose_pub;
 geometry_msgs::Pose cup_pose_msg_;
@@ -195,7 +200,7 @@ void RGBD_sensor(mjModel* model, mjData* data)
     mtx.lock();
 
 
-    // if(camera_pub_flag_){
+    if(camera_pub_flag_){
         pub_img = mj_RGBD.get_color_image();
         depth_img = mj_RGBD.get_depth_image();
         ros::Time img_capture_time = ros::Time::now();
@@ -217,10 +222,9 @@ void RGBD_sensor(mjModel* model, mjData* data)
             depth_msg->header.stamp = img_capture_time;
             camera_image_pub.publish(img_msg);
             depth_image_pub.publish(depth_msg);
-            camera_pub_flag_=false;
-
+            img_updated = true;
         }
-    // }
+    }
 
     ////CUP POSE
     body_id = -1;
@@ -300,10 +304,76 @@ void RGBD_sensor(mjModel* model, mjData* data)
 }
 
 void camera_flag_callback(const std_msgs::BoolConstPtr &msg){
-    if(msg->data){
-        camera_pub_flag_ = true;
-    }
+    camera_pub_flag_ = msg->data;
 }
+
+class ImageRequestAction {
+    protected:
+        ros::NodeHandle nh_;
+
+        actionlib::SimpleActionServer<mujoco_ros_msgs::ImgReqAction> as_;
+
+        std::string action_name_;
+
+        mujoco_ros_msgs::ImgReqResult result_;
+        mujoco_ros_msgs::ImgReqFeedback feedback_;
+    public:
+        bool isSuccess = false;
+        bool action_called = false;
+
+        mujoco_ros_msgs::ImgReqGoal goal_;
+
+        ImageRequestAction(std::string name) :
+            as_(nh_, name, boost::bind(&ImageRequestAction::executeCB, this, _1), false), action_name_(name)
+        {
+            as_.start();
+        }
+
+        ~ImageRequestAction(){
+        }
+
+        void executeCB(const mujoco_ros_msgs::ImgReqGoalConstPtr &goal){
+            ROS_INFO("action called");
+            ros::Rate r(1);
+            mujoco_ros_msgs::ImgReqFeedback feedback;
+            mujoco_ros_msgs::ImgReqResult result;
+
+            if (goal->request==true){
+                img_updated = false;
+            } 
+            
+            while(!isSuccess){
+                // Check that preempt has not been requested by the client
+                // if(!ros::ok()) ROS_INFO("ROS:: NOT OK");
+                if (as_.isPreemptRequested() || !ros::ok()){
+                    ROS_INFO("NONONONONO");
+                    as_.setPreempted();
+                    isSuccess = false;
+                    break;
+                }
+
+                if(img_updated!=true){
+                    feedback.isDone = false;
+                }
+                else{
+                    feedback.isDone = true;
+                    isSuccess = true;
+                    img_updated = false;
+                }
+                feedback.isDone = false;
+                as_.publishFeedback(feedback);
+                r.sleep();
+            }
+
+            if(isSuccess){
+                ROS_INFO("Before Succeeded");
+                result.image = *img_msg;
+                result.dimage = *depth_msg;
+                ROS_INFO("Succeeded");
+                as_.setSucceeded(result);
+            }
+        }
+};
 
 // run event loop
 int main(int argc, char **argv)
@@ -323,6 +393,8 @@ int main(int argc, char **argv)
     camera_image_pub = it.advertise("/mujoco_ros_interface/camera/image", 1);
     depth_image_pub = it.advertise("/mujoco_ros_interface/camera/depth", 1);
 
+    std::string actionServerName = "/imageRequestAction";
+    ImageRequestAction action(actionServerName);
 
     cup_pose_pub = nh.advertise<geometry_msgs::Pose>("/cup_pose", 1);
     new_cup_pos_sub = nh.subscribe<geometry_msgs::Point>("/new_cup_pos", 1, NewCupPosCallback);
