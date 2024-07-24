@@ -171,13 +171,17 @@ void NewCupPosCallback(const geometry_msgs::PointConstPtr &msg)
         cup_y_ = msg->y;
         cup_z_ = msg->z;
         
-        int geomIndex = m->body_geomadr[body_id];
+        int qposadr = m->jnt_qposadr[m->body_jntadr[body_id]];
 
         std::cout<< "MSG: " << msg->x <<"\t"<< msg->y<<"\t" << msg->z <<std::endl;
         // relative position wrt initial position
-        m->body_pos[3*body_id] = msg->x;
-        m->body_pos[3*body_id+1] = msg->y;
-        m->body_pos[3*body_id+2] = msg->z;
+        d->qpos[qposadr] = msg->x;
+        d->qpos[qposadr+1] = msg->y;
+        d->qpos[qposadr+2] = msg->z;
+        d->qpos[qposadr+3] = 1;
+        d->qpos[qposadr+4] = 0;
+        d->qpos[qposadr+5] = 0;
+        d->qpos[qposadr+6] = 0;
         
     }
     else
