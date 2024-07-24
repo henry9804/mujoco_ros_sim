@@ -13,6 +13,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <std_msgs/Bool.h>
+#include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Point.h>
 
 // MuJoCo basic data structures
@@ -31,8 +32,8 @@ cv::Mat depth_img;
 sensor_msgs::ImagePtr img_msg;
 sensor_msgs::ImagePtr depth_msg;
 
-ros::Publisher cup_pos_pub;
-geometry_msgs::Point cup_pos_msg_;
+ros::Publisher cup_pose_pub;
+geometry_msgs::Pose cup_pose_msg_;
 int body_id;
 int body_id1;
 
@@ -230,16 +231,26 @@ void RGBD_sensor(mjModel* model, mjData* data)
     {
         geomIndex = model->body_geomadr[body_id];
 
-        cup_pos_msg_.x = data->geom_xpos[3*geomIndex];
-        cup_pos_msg_.y = data->geom_xpos[3*geomIndex + 1];
-        cup_pos_msg_.z = data->geom_xpos[3*geomIndex + 2];
+        cup_pose_msg_.position.x = data->geom_xpos[3*geomIndex];
+        cup_pose_msg_.position.y = data->geom_xpos[3*geomIndex + 1];
+        cup_pose_msg_.position.z = data->geom_xpos[3*geomIndex + 2];
 
+        double rot_vec[9];
+        for(int i = 0; i < 9; i++){
+            rot_vec[i] = data->geom_xmat[9*geomIndex + i];
+        }
+        Eigen::Map<Eigen::Matrix3d> rotationMatrix(rot_vec);
+        Eigen::Quaterniond quaternion(rotationMatrix);
+        cup_pose_msg_.orientation.x = quaternion.coeffs()[0];
+        cup_pose_msg_.orientation.y = quaternion.coeffs()[1];
+        cup_pose_msg_.orientation.z = quaternion.coeffs()[2];
+        cup_pose_msg_.orientation.w = quaternion.coeffs()[3];
     }
     else
     {
         ROS_WARN("NO CUP POS");
     }
-    cup_pos_pub.publish(cup_pos_msg_);
+    cup_pose_pub.publish(cup_pose_msg_);
 
     mtx.unlock();
 
@@ -277,7 +288,8 @@ void RGBD_sensor(mjModel* model, mjData* data)
     glfwPollEvents();
 
     int elapsed_time_nano = int((ros::Time::now() - init_).toSec() * 1e9);
-    std::this_thread::sleep_for(std::chrono::nanoseconds(16666666 - elapsed_time_nano));
+    int dt = int(1e9/30);
+    std::this_thread::sleep_for(std::chrono::nanoseconds(dt - elapsed_time_nano));
 
     // Do not forget to release buffer to avoid memory leak
     mj_RGBD.release_buffer();
@@ -312,7 +324,7 @@ int main(int argc, char **argv)
     depth_image_pub = it.advertise("/mujoco_ros_interface/camera/depth", 1);
 
 
-    cup_pos_pub = nh.advertise<geometry_msgs::Point>("/cup_pos", 1);
+    cup_pose_pub = nh.advertise<geometry_msgs::Pose>("/cup_pose", 1);
     new_cup_pos_sub = nh.subscribe<geometry_msgs::Point>("/new_cup_pos", 1, NewCupPosCallback);
 
     if (!use_shm)
