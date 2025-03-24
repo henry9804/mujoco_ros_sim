@@ -30,7 +30,6 @@ mjvOption option;
 
 image_transport::Publisher camera_image_pub;
 image_transport::Publisher depth_image_pub;
-bool camera_pub_flag_=true;
 cv::Mat pub_img;
 cv::Mat depth_img;
 sensor_msgs::ImagePtr img_msg;
@@ -200,30 +199,28 @@ void RGBD_sensor(mjModel* model, mjData* data)
     mtx.lock();
 
 
-    if(camera_pub_flag_){
-        pub_img = mj_RGBD.get_color_image();
-        depth_img = mj_RGBD.get_depth_image();
-        ros::Time img_capture_time = ros::Time::now();
-        if(pub_img.empty())
-        {
-            ROS_ERROR("Could not read the image.");
-            // return -1;
-        }
-        else
-        {
-            ////CAMERA img publish
-            // cv::Mat resized_img;
-            // cv::Size desired_size(480, 640); // 원하는 크기 지정하세요 FOV는 .xml에서..
-            // cv::resize(pub_img, resized_img, desired_size);
-            // img_msg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", resized_img).toImageMsg();
-            img_msg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", pub_img).toImageMsg();
-            depth_msg = cv_bridge::CvImage(std_msgs::Header(), "32FC1", depth_img).toImageMsg();
-            img_msg->header.stamp = img_capture_time;
-            depth_msg->header.stamp = img_capture_time;
-            camera_image_pub.publish(img_msg);
-            depth_image_pub.publish(depth_msg);
-            img_updated = true;
-        }
+    pub_img = mj_RGBD.get_color_image();
+    depth_img = mj_RGBD.get_depth_image();
+    ros::Time img_capture_time = ros::Time::now();
+    if(pub_img.empty())
+    {
+        ROS_ERROR("Could not read the image.");
+        // return -1;
+    }
+    else
+    {
+        ////CAMERA img publish
+        // cv::Mat resized_img;
+        // cv::Size desired_size(480, 640); // 원하는 크기 지정하세요 FOV는 .xml에서..
+        // cv::resize(pub_img, resized_img, desired_size);
+        // img_msg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", resized_img).toImageMsg();
+        img_msg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", pub_img).toImageMsg();
+        depth_msg = cv_bridge::CvImage(std_msgs::Header(), "32FC1", depth_img).toImageMsg();
+        img_msg->header.stamp = img_capture_time;
+        depth_msg->header.stamp = img_capture_time;
+        camera_image_pub.publish(img_msg);
+        depth_image_pub.publish(depth_msg);
+        img_updated = true;
     }
 
     ////OBJ POSE
@@ -258,29 +255,6 @@ void RGBD_sensor(mjModel* model, mjData* data)
 
     mtx.unlock();
 
-
-    
-    // if(camera_pub_flag_2){
-    //     pub_img = mj_RGBD.get_color_image();
-    //     if(pub_img.empty())
-    //     {
-    //         ROS_ERROR("Could not read the image.");
-    //         // return -1;
-    //     }
-    //     else
-    //     {
-    //         cv::Mat resized_img;
-    //         // cv::Size desired_size(64, 64); // 원하는 크기 지정하세요 FOV는 .xml에서..
-    //         cv::Size desired_size(128, 128); // 원하는 크기 지정하세요
-    //         cv::resize(pub_img, resized_img, desired_size);
-
-    //         img_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", resized_img).toImageMsg();
-    //         camera_image_pub2.publish(img_msg2);
-    //         camera_pub_flag_2=false;
-    //     }
-    // }
-
-
     // mtx.lock();
     // *color_cloud = mj_RGBD.generate_color_pointcloud();
     // mtx.unlock();
@@ -301,10 +275,6 @@ void RGBD_sensor(mjModel* model, mjData* data)
 
   mjv_freeScene(&sensor_scene);
   mjr_freeContext(&sensor_context);
-}
-
-void camera_flag_callback(const std_msgs::BoolConstPtr &msg){
-    camera_pub_flag_ = msg->data;
 }
 
 class ImageRequestAction {
@@ -388,7 +358,6 @@ int main(int argc, char **argv)
     sim_command_sub = nh.subscribe<std_msgs::String>("/mujoco_ros_interface/sim_command_con2sim", 100, sim_command_callback);
     sim_command_pub = nh.advertise<std_msgs::String>("/mujoco_ros_interface/sim_command_sim2con", 1);
 
-    ros::Subscriber camera_flag_sub = nh.subscribe<std_msgs::Bool>("/mujoco_ros_interface/camera/flag", 1, camera_flag_callback);
     image_transport::ImageTransport it(nh);
     camera_image_pub = it.advertise("/mujoco_ros_interface/camera/image", 1);
     depth_image_pub = it.advertise("/mujoco_ros_interface/camera/depth", 1);
