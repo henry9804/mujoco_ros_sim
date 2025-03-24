@@ -37,8 +37,8 @@ sensor_msgs::ImagePtr img_msg;
 sensor_msgs::ImagePtr depth_msg;
 bool img_updated = false;
 
-ros::Publisher cup_pose_pub;
-geometry_msgs::Pose cup_pose_msg_;
+ros::Publisher obj_pose_pub;
+geometry_msgs::Pose obj_pose_msg_;
 int body_id;
 int body_id1;
 
@@ -226,35 +226,35 @@ void RGBD_sensor(mjModel* model, mjData* data)
         }
     }
 
-    ////CUP POSE
+    ////OBJ POSE
     body_id = -1;
-    body_id = mj_name2id(model, mjOBJ_BODY, "cup");
+    body_id = mj_name2id(model, mjOBJ_BODY, "obj");
 
 
     if (body_id >= 0)
     {
         geomIndex = model->body_geomadr[body_id];
 
-        cup_pose_msg_.position.x = data->geom_xpos[3*geomIndex];
-        cup_pose_msg_.position.y = data->geom_xpos[3*geomIndex + 1];
-        cup_pose_msg_.position.z = data->geom_xpos[3*geomIndex + 2];
+        obj_pose_msg_.position.x = data->geom_xpos[3*geomIndex];
+        obj_pose_msg_.position.y = data->geom_xpos[3*geomIndex + 1];
+        obj_pose_msg_.position.z = data->geom_xpos[3*geomIndex + 2];
 
-        double rot_vec[9];
+        double rot_vec[9];  // column vectors
         for(int i = 0; i < 9; i++){
             rot_vec[i] = data->geom_xmat[9*geomIndex + i];
         }
         Eigen::Map<Eigen::Matrix3d> rotationMatrix(rot_vec);
-        Eigen::Quaterniond quaternion(rotationMatrix);
-        cup_pose_msg_.orientation.x = quaternion.coeffs()[0];
-        cup_pose_msg_.orientation.y = quaternion.coeffs()[1];
-        cup_pose_msg_.orientation.z = quaternion.coeffs()[2];
-        cup_pose_msg_.orientation.w = quaternion.coeffs()[3];
+        Eigen::Quaterniond quaternion(rotationMatrix.transpose());  // eigen uses row vectors, so transpose
+        obj_pose_msg_.orientation.x = quaternion.coeffs()[0];
+        obj_pose_msg_.orientation.y = quaternion.coeffs()[1];
+        obj_pose_msg_.orientation.z = quaternion.coeffs()[2];
+        obj_pose_msg_.orientation.w = quaternion.coeffs()[3];
     }
     else
     {
-        ROS_WARN("NO CUP POS");
+        ROS_WARN("NO OBJ POS");
     }
-    cup_pose_pub.publish(cup_pose_msg_);
+    obj_pose_pub.publish(obj_pose_msg_);
 
     mtx.unlock();
 
@@ -396,8 +396,8 @@ int main(int argc, char **argv)
     std::string actionServerName = "/imageRequestAction";
     ImageRequestAction action(actionServerName);
 
-    cup_pose_pub = nh.advertise<geometry_msgs::Pose>("/cup_pose", 1);
-    new_cup_pos_sub = nh.subscribe<geometry_msgs::Point>("/new_cup_pos", 1, NewCupPosCallback);
+    obj_pose_pub = nh.advertise<geometry_msgs::Pose>("/obj_pose", 1);
+    new_obj_pose_sub = nh.subscribe<geometry_msgs::Pose>("/new_obj_pose", 1, NewObjPoseCallback);
 
     if (!use_shm)
     {

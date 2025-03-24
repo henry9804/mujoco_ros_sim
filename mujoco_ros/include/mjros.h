@@ -291,8 +291,8 @@ ros::Subscriber joint_init;
 ros::Subscriber sim_command_sub;
 ros::Publisher sim_command_pub;
 ros::Publisher sim_status_pub;
-ros::Subscriber new_cup_pos_sub;
-// ros::Publisher cup_pos_pub;
+ros::Subscriber new_obj_pose_sub;
+// ros::Publisher obj_pose_pub;
 
 //mujoco_ros_msgs::JointState joint_state_msg_;
 //mujoco_ros_msgs::JointSet joint_set_msg_;
@@ -301,7 +301,7 @@ mujoco_ros_msgs::SimStatus sim_status_msg_;
 sensor_msgs::JointState joint_state_msg_;
 //sensor_msgs::JointState joint_set_msg_;
 mujoco_ros_msgs::JointSet joint_set_msg_;
-// geometry_msgs::Point cup_pos_msg_;
+// geometry_msgs::Point obj_pose_msg_;
 std_msgs::Float32 sim_time;
 ros::Publisher sim_time_pub;
 
@@ -344,9 +344,9 @@ std::deque<std::vector<float>> ctrl_cmd_que_;
 mjtNum *ctrl_command;
 mjtNum *ctrl_command2;
 
-float cup_x_;
-float cup_y_;
-float cup_z_;
+float obj_x_;
+float obj_y_;
+float obj_z_;
 bool cmd_rcv = false;
 
 // user state for pub
@@ -369,6 +369,6 @@ void state_publisher_init();
 void state_publisher();
 void mujoco_ros_connector_init();
 void mycontroller(const mjModel *m, mjData *d);
-void NewCupPosCallback(const geometry_msgs::PointConstPtr &msg);
+void NewObjPoseCallback(const geometry_msgs::PoseConstPtr &msg);
 
 #endif

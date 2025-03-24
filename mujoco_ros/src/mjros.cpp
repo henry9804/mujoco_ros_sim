@@ -25,13 +25,13 @@ void c_reset()
 
     mujoco_ros_connector_init();
         int body_id = -1;
-    body_id = mj_name2id(m, mjOBJ_BODY, "cup");
-    std::cout<<"Cup Callback"<<std::endl;
-            int geomIndex = m->body_geomadr[body_id];
+    body_id = mj_name2id(m, mjOBJ_BODY, "obj");
+    std::cout<<"Obj Callback"<<std::endl;
+    int geomIndex = m->body_geomadr[body_id];
 
-            d->geom_xpos[3*geomIndex] = cup_x_;
-            d->geom_xpos[3*geomIndex + 1] = cup_y_;
-            d->geom_xpos[3*geomIndex + 2] = cup_z_;
+    d->geom_xpos[3*geomIndex] = obj_x_;
+    d->geom_xpos[3*geomIndex + 1] = obj_y_;
+    d->geom_xpos[3*geomIndex + 2] = obj_z_;
     mj_forward(m, d);
 
     sim_time_ros = ros::Duration(d->time);
@@ -136,57 +136,34 @@ void sim_command_callback(const std_msgs::StringConstPtr &msg)
     }
 }
 
-void NewCupPosCallback(const geometry_msgs::PointConstPtr &msg)
+void NewObjPoseCallback(const geometry_msgs::PoseConstPtr &msg)
 {
-    // float cup_x = msg -> x;
-    // float cup_y = msg -> y;
-    // float cup_z = msg -> z;
-
-    //  cup_pos_msg_.x = data->geom_xpos[3*geomIndex];
- 
-    // cup_pos_ << cup_x, cup_y, cup_z;
-    // std::cout << "CupPos subscribed!" << std::endl;
-
-
-    // if(msg->data){
-    //     // for (int i = 0; i < model->nu /3; ++i)
-    //     // {
-    //     //     data->ctrl[3 * i] = msg;
-    //     //     data->ctrl[3 * i + 1] = msg;
-    //     //     data->ctrl[3 * i + 2] = msg;
-    //     // }
-
-    //     data->ctrl[3 * i] = msg;
-    //     data->ctrl[3 * i + 1] = msg;
-    //     data->ctrl[3 * i + 2] = msg;
-    //}
-
+    ////OBJ POSE
     int body_id = -1;
-    body_id = mj_name2id(m, mjOBJ_BODY, "cup");
-    std::cout<<"Cup Callback"<<std::endl;
+    body_id = mj_name2id(m, mjOBJ_BODY, "obj");
+    std::cout<<"Obj Callback"<<std::endl;
 
     if (body_id >= 0)
     {
-        cup_x_ = msg->x;
-        cup_y_ = msg->y;
-        cup_z_ = msg->z;
-        
         int qposadr = m->jnt_qposadr[m->body_jntadr[body_id]];
 
-        std::cout<< "MSG: " << msg->x <<"\t"<< msg->y<<"\t" << msg->z <<std::endl;
+        obj_x_ = m->key_qpos[settings.key * m->nq + qposadr] + msg->position.x;
+        obj_y_ = m->key_qpos[settings.key * m->nq + qposadr + 1] + msg->position.y;
+        obj_z_ = m->key_qpos[settings.key * m->nq + qposadr + 2] + msg->position.z;
+
+        std::cout<< "MSG: " << obj_x_ <<"\t"<< obj_y_ <<"\t" << obj_z_ <<std::endl;
         // relative position wrt initial position
-        d->qpos[qposadr] = msg->x;
-        d->qpos[qposadr+1] = msg->y;
-        d->qpos[qposadr+2] = msg->z;
-        d->qpos[qposadr+3] = 1;
-        d->qpos[qposadr+4] = 0;
-        d->qpos[qposadr+5] = 0;
-        d->qpos[qposadr+6] = 0;
-        
+        d->qpos[qposadr] = obj_x_;
+        d->qpos[qposadr+1] = obj_y_;
+        d->qpos[qposadr+2] = obj_z_;
+        d->qpos[qposadr+3] = msg->orientation.w;
+        d->qpos[qposadr+4] = msg->orientation.x;
+        d->qpos[qposadr+5] = msg->orientation.y;
+        d->qpos[qposadr+6] = msg->orientation.z;
     }
     else
     {
-        ROS_WARN("NO CUP POS");
+        ROS_WARN("NO OBJ POS");
     }
 
 }
