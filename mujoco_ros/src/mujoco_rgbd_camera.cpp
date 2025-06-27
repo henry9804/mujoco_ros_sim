@@ -84,37 +84,37 @@ void RGBD_mujoco::get_RGBD_buffer(const mjModel* model, const mjrRect viewport, 
 // }
 
 
-// pcl::PointCloud<pcl::PointXYZRGB> RGBD_mujoco::generate_color_pointcloud()
-// {
-//   using namespace pcl;
-//   // color image and depth image should have the same size and should be aligned
-//   assert(color_image.size() == depth_image.size());
+pcl::PointCloud<pcl::PointXYZRGB> RGBD_mujoco::generate_color_pointcloud()
+{
+  using namespace pcl;
+  // color image and depth image should have the same size and should be aligned
+  assert(color_image.size() == depth_image.size());
 
-//   PointCloud<PointXYZRGB> rgb_cloud;
+  PointCloud<PointXYZRGB> rgb_cloud;
 
-//   for (int i = 0; i < color_image.rows; i++)
-//   {
-//     for (int j = 0; j < color_image.cols; j++)
-//     {
-//       double depth = *(depth_image.ptr<float>(i,j));
-//       // filter far points
-//       if (depth < z_far)
-//       {
-//         PointXYZRGB rgb_3d_point;
-//         rgb_3d_point.x = double(j - cx) * depth / f;
-//         rgb_3d_point.y = double(i - cy) * depth / f;
-//         rgb_3d_point.z = depth;
+  for (int i = 0; i < color_image.rows; i++)
+  {
+    for (int j = 0; j < color_image.cols; j++)
+    {
+      double depth = *(depth_image.ptr<float>(i,j));
+      // filter far points
+      if (depth < z_far)
+      {
+        PointXYZRGB rgb_3d_point;
+        rgb_3d_point.x = double(j - cx) * depth / f;
+        rgb_3d_point.y = double(i - cy) * depth / f;
+        rgb_3d_point.z = depth;
 
-//         const uchar* bgr_ptr = color_image.ptr<uchar>(i,j);
-//         rgb_3d_point.r = bgr_ptr[0];
-//         rgb_3d_point.g = bgr_ptr[1];
-//         rgb_3d_point.b = bgr_ptr[2];
-//         rgb_cloud.push_back(rgb_3d_point);
-//       }
-//     }
-//   }
-//   return rgb_cloud;
-// }
+        const uchar* bgr_ptr = color_image.ptr<uchar>(i,j);
+        rgb_3d_point.r = bgr_ptr[0];
+        rgb_3d_point.g = bgr_ptr[1];
+        rgb_3d_point.b = bgr_ptr[2];
+        rgb_cloud.push_back(rgb_3d_point);
+      }
+    }
+  }
+  return rgb_cloud;
+}
 
 // pcl::visualization::PCLVisualizer::Ptr color_cloud_visual (pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud)
 // {

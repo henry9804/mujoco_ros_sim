@@ -17,9 +17,9 @@
 // #include <pcl/visualization/pcl_visualizer.h>
 // #include <pcl/filters/voxel_grid.h>
 
-// #include <ros/ros.h>
-// #include <sensor_msgs/PointCloud2.h>
-// #include <pcl_ros/point_cloud.h>
+#include <ros/ros.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <pcl_ros/point_cloud.h>
 
 class RGBD_mujoco
 {
@@ -75,7 +75,7 @@ class RGBD_mujoco
 
     /// @brief Generate colorful pointcloud
     /// @return colorful pointcloud
-    // pcl::PointCloud<pcl::PointXYZRGB> generate_color_pointcloud();
+    pcl::PointCloud<pcl::PointXYZRGB> generate_color_pointcloud();
 
     inline cv::Mat get_color_image()
     {

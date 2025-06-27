@@ -32,8 +32,12 @@ image_transport::Publisher camera_image_pub;
 image_transport::Publisher depth_image_pub;
 cv::Mat pub_img;
 cv::Mat depth_img;
+
+ros::Publisher color_cloud_pub;
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr color_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
 sensor_msgs::ImagePtr img_msg;
 sensor_msgs::ImagePtr depth_msg;
+sensor_msgs::PointCloud2 color_cloud_msg;
 bool img_updated = false;
 
 ros::Publisher obj_pose_pub;
@@ -255,9 +259,13 @@ void RGBD_sensor(mjModel* model, mjData* data)
 
     mtx.unlock();
 
-    // mtx.lock();
-    // *color_cloud = mj_RGBD.generate_color_pointcloud();
-    // mtx.unlock();
+    mtx.lock();
+    *color_cloud = mj_RGBD.generate_color_pointcloud();
+    pcl::toROSMsg(*color_cloud, color_cloud_msg);
+    color_cloud_msg.header.frame_id = "Camera";
+    color_cloud_msg.header.stamp = img_capture_time;
+    color_cloud_pub.publish(color_cloud_msg);
+    mtx.unlock();
 
     // Swap OpenGL buffers
     glfwSwapBuffers(window);
@@ -361,6 +369,7 @@ int main(int argc, char **argv)
     image_transport::ImageTransport it(nh);
     camera_image_pub = it.advertise("/mujoco_ros_interface/camera/image", 1);
     depth_image_pub = it.advertise("/mujoco_ros_interface/camera/depth", 1);
+    color_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>("/mujoco_ros_interface/camera/color_cloud", 1);
 
     std::string actionServerName = "/imageRequestAction";
     ImageRequestAction action(actionServerName);
