@@ -523,6 +523,10 @@ void mujoco_ros_connector_init()
         ctrlstat = "MISSING";
     }
 
+    for (int i = 0; i < 4; i++){
+        std::copy(m->key_qpos + settings.key * m->nq + 40 + i * 5, m->key_qpos + settings.key * m->nq + 40 + i * 5 + 4, mj_shm_->handCommand + i * 4);
+        mj_shm_->handCommand[4 * 4 + i] = m->key_qpos[settings.key * m->nq + 40 + i * 5 + 4];
+    }
     controller_reset_check = true;
     command;
     controller_init_check = true;
